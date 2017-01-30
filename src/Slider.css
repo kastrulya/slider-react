@@ -1,10 +1,22 @@
-.tile_odd {
+.tile {
+    position: absolute;
     display: inline-block;
     margin: 0 auto;
     vertical-align: middle;
+    transition: opacity 2s;
 
-    animation: fade_odd 8s infinite;
-    -webkit-animation: fade_odd 8s infinite;
+    /*animation: fade_odd 8s infinite;*/
+    /*-webkit-animation: fade_odd 8s infinite;*/
+}
+
+.hide {
+    opacity: 0;
+    /*transition-timing-function: cubic-bezier(0,1,0,1);*/
+}
+
+.show {
+    opacity: 1;
+    /*transition-timing-function: cubic-bezier(1,0,1,0);*/
 }
 
 @keyframes fade_odd {

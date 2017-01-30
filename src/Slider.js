@@ -1,5 +1,5 @@
 import React, {Component} from 'react';
-import {createStore} from 'redux';
+import {createStore, combineReducers} from 'redux';
 import './Slider.css';
 
 const FEED = {
@@ -22,7 +22,29 @@ const FEED = {
     ]
 };
 
-const slidesReducer = (state = {tiles: [], activeIndex: 0}, action) => {
+const findNextIndex = (length, currentIndex) => {
+    return currentIndex === length - 1 ? 0 : currentIndex + 1;
+};
+
+
+const findPrevIndex = (length, currentIndex) => {
+    return currentIndex === 0 ? length - 1 : currentIndex - 1;
+};
+
+const preloader = (state = false, action) => {
+    switch (action.type) {
+        case 'PRELOAD':
+            return true;
+        default:
+            return state;
+    }
+};
+
+const slider = (state = {
+    tiles: [],
+    activeIndex: 0,
+    activeTile: 0,
+}, action) => {
     console.log(action.type, action);
     switch (action.type) {
         case 'POPULATE':
@@ -32,27 +54,41 @@ const slidesReducer = (state = {tiles: [], activeIndex: 0}, action) => {
                 tiles: action.data
             };
         case 'NAVIGATE_BACK':
+            let nextIndex = state.activeIndex;
+            let activeIndex = findPrevIndex(state.tiles.length, state.activeIndex);
+            let activeTile = state.activeTile === 0 ? 1 : 0;
             return {
                 ...state,
-                activeIndex: state.activeIndex === 0 ? state.tiles.length - 1 : state.activeIndex - 1
+                activeIndex,
+                nextIndex,
+                activeTile
             };
         case 'NAVIGATE_FORTH':
+            activeIndex = findNextIndex(state.tiles.length, state.activeIndex);
+            nextIndex = findNextIndex(state.tiles.length, activeIndex);
+            activeTile = state.activeTile === 0 ? 1 : 0;
             return {
                 ...state,
-                activeIndex: state.activeIndex === state.tiles.length - 1 ? 0 : state.activeIndex + 1
+                activeIndex,
+                nextIndex,
+                activeTile
             };
         default:
             return state;
     }
 };
 
-const store = createStore(slidesReducer);
+const store = createStore(combineReducers({
+    slider,
+    preloader
+}));
 
-const Tile = ({hero, text, image}) => (
+const Tile = ({active, hero, text, image}) => (
     <div
         className="tile-hero"
         style={{backgroundImage: `url(${hero})`}}>
-        <figure className="tile-figure">
+        <figure
+            className={ "tile-figure " + (active ? "show" : "hide") }>
             <img
                 className="tile-figure__img"
                 width="150"
@@ -64,14 +100,10 @@ const Tile = ({hero, text, image}) => (
     </div>
 );
 
-const getCurrentTile = ({tiles, activeIndex}) => {
-    return tiles[activeIndex];
-};
-
 class Slider extends Component {
     constructor() {
         super();
-        this.time = 20000;
+        this.time = 5000;
     }
 
     componentDidMount() {
@@ -98,7 +130,24 @@ class Slider extends Component {
     }
 
     render() {
-        const currentTile = getCurrentTile(store.getState());
+        const {tiles, activeIndex, nextIndex, activeTile} = store.getState().slider;
+        const currentTile = tiles[activeIndex];
+        const nextTile = tiles[nextIndex];
+        const activeTileComponent =
+            <div className="tile show">
+                <Tile
+                    {...currentTile}
+                    active={true}
+                />
+            </div>;
+        const hiddenTileComponent =
+            <div className="tile hide">
+                <Tile
+                    {...nextIndex}
+                />;
+            </div>;
+        const tile1 = activeTile === 0 ? activeTileComponent : hiddenTileComponent;
+        const tile2 = activeTile === 1 ? activeTileComponent : hiddenTileComponent;
         return (
             <div>
                 <button
@@ -110,14 +159,14 @@ class Slider extends Component {
                     }>◀️️
                 </button>
                 <div
-                    className="tile_odd"
                     onMouseEnter={() => {
                         clearInterval(this.timer)
                     }}
                     onMouseLeave={() => {
                         this.createTimer()
                     }}>
-                    <Tile {...currentTile} />
+                    {tile1}
+                    {tile2}
                 </div>
                 <button
                     className="navigation"
